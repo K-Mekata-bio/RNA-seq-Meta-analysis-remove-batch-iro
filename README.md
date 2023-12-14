@@ -19,7 +19,7 @@
 - **main-log.r:**
   - main file using Log method
 - **coldata.csv & countdata.csv:**
-  - sample file
+  - sample files
 
 ### Installation and Library Loading
 - **Package Installation from CRAN:**
