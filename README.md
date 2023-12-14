@@ -13,6 +13,14 @@
   - Default is, results_raw <- topTable(fit_raw, coef="groupH", number=Inf, sort.by="p").
 - **This page was summarized by ChatGPT-4 and edited:**
 
+### Files
+- **main-TMM.r:**
+  - main file using TMM method
+- **main-log.r:**
+  - main file using Log method
+- **coldata.csv & countdata.csv:**
+  - sample file
+
 ### Installation and Library Loading
 - **Package Installation from CRAN:**
   - Install `ggplot2`, `gridExtra`, `FactoMineR`, `reshape2`, `shiny`, `ggpubr`
