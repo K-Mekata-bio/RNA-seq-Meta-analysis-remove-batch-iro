@@ -10,14 +10,14 @@ install.packages("ggpubr")
 if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 
+BiocManager::install("limma")
+BiocManager::install("edgeR")
 BiocManager::install("EnhancedVolcano")
 BiocManager::install("org.Hs.eg.db")
-BiocManager::install("sva")
-BiocManager::install("edgeR")
-BiocManager::install("limma")
-BiocManager::install("sva")
 
 # Load necessary libraries
+library(limma)
+library(edgeR)
 library(ggplot2)
 library(gridExtra)
 library(FactoMineR)
@@ -26,9 +26,6 @@ library(shiny)
 library(ggpubr)
 library(EnhancedVolcano)
 library(org.Hs.eg.db)
-library(sva)
-library(limma)
-library(edgeR)
 
 # Load data from csv file
 count <- read.csv("countdata.csv", header = T, row.names = 1)
@@ -41,48 +38,37 @@ coldata <- read.csv("coldata.csv", header = T, row.names = 1)
 coldata$group <- factor(coldata$group)
 coldata$batch <- factor(coldata$batch)
 
-# Create a DGEList object from the count data
+# Create DGEList object
 dge <- DGEList(counts = countmatrix)
 
-# Apply the filter
+# Filter the data
 keep <- filterByExpr(dge, group = coldata$group)
 dge <- dge[keep, , keep.lib.sizes=FALSE]
 
-# Convert the filtered DGEList object back to a matrix
-filtered_countmatrix <- dge$counts
+# Normalize counts using TMM method
+dge <- calcNormFactors(dge)
 
-# Normalize counts using log transformation
-logcounts <- log2(filtered_countmatrix + 1)
-write.csv(logcounts, file = "logcounts.csv")
-
-## Mean variance trend plot
-# Perform voom transformation
-v <- voom(filtered_countmatrix, plot=TRUE)
-
-## Remove Batch effect
 # Set "C" group as the reference level ("H"/"C")
 coldata$group <- relevel(coldata$group, ref = "C")
 
 # Create design matrix and perform voom transformation
-design <- model.matrix(~group, data = coldata)
-
-# Remove batch effects with ComBat
-adjusted_logcounts <- ComBat(logcounts, batch = coldata$batch, mod = design, par.prior = TRUE, prior.plots = FALSE)
-
-write.csv(adjusted_logcounts, file = "adjusted_logcounts.csv")
+design <- model.matrix(~ batch + group, data = coldata)
+v <- voom(dge, design, plot = TRUE)
+v_raw <- v$E
+write.csv(v_raw, file = "voom_counts.csv")
 
 ## DEG analysis (before batch effect removal) ##
 # Set an FDR threshold and fold change threshold
 fdr_threshold <- 0.05
-logFC_threshold <- log2(1.5) # 1.5-fold change
+logFC_threshold <- log2(1.5)
 
-# Fit linear model
-fit_raw <- lmFit(logcounts, design)
+# Fit linear model on raw data
+fit_raw <- lmFit(v_raw, design)
 
 # Perform hypothesis testing
 fit_raw <- eBayes(fit_raw)
 
-# Extract results CHANGE "coef" name!!!!!!
+# Extract results
 results_raw <- topTable(fit_raw, coef="groupH", number=Inf, sort.by="p")
 
 # Adjust for multiple testing (FDR)
@@ -91,9 +77,18 @@ results_raw$adj.P.Val <- p.adjust(results_raw$P.Value, method="BH")
 # Select differentially expressed genes
 de_genes_raw <- results_raw[(results_raw$adj.P.Val < fdr_threshold) & (abs(results_raw$logFC) > logFC_threshold),]
 
-## DEG analysis (before batch effect removal) ##
+# Remove batch effect
+v_corrected <- removeBatchEffect(v_raw, batch = coldata$batch)
+
+# Save corrected data to a file
+write.csv(v_corrected, file = "voom_batch_corrected_counts.csv")
+
+## DEG analysis (after batch effect removal) ##
+# Create new design matrix without batch
+design_no_batch <- model.matrix(~ group, data = coldata)
+
 # Fit linear model
-fit_corrected <- lmFit(adjusted_logcounts, design)
+fit_corrected <- lmFit(v_corrected, design_no_batch)
 
 # Perform hypothesis testing
 fit_corrected <- eBayes(fit_corrected)
@@ -111,7 +106,7 @@ de_genes_corrected <- results_corrected[(results_corrected$adj.P.Val < fdr_thres
 gene_symbols_raw <- mapIds(org.Hs.eg.db, keys=rownames(de_genes_raw), column="SYMBOL", keytype="ENSEMBL", multiVals="first")
 de_genes_raw$gene_symbol <- gene_symbols_raw
 
-# Convert ENSG ID to gene symbol for raw data
+# Convert ENSG ID to gene symbol for corrected data
 gene_symbols_corrected <- mapIds(org.Hs.eg.db, keys=rownames(de_genes_corrected), column="SYMBOL", keytype="ENSEMBL", multiVals="first")
 de_genes_corrected$gene_symbol <- gene_symbols_corrected
 
@@ -128,8 +123,8 @@ top100_genes_corrected <- head(results_corrected_sorted, 100)
 top100_genes_raw <- head(results_raw_sorted, 100)
 
 # Extract the corresponding expression data for the top genes
-top100_gene_data_corrected <- adjusted_logcounts[rownames(top100_genes_corrected),]
-top100_gene_data_raw <- logcounts[rownames(top100_genes_raw),]
+top100_gene_data_corrected <- v_corrected[rownames(top100_genes_corrected),]
+top100_gene_data_raw <- v_raw[rownames(top100_genes_raw),]
 
 # Save the expression data of top 100 genes to a file
 write.csv(top100_gene_data_corrected, file="top100_gene_data_corrected.csv")
@@ -145,7 +140,7 @@ write.csv(top100_gene_data_raw, file="top100_gene_data_raw.csv")
 # DPI 300
 # Plot Width 600 Height 600
 
-## Volcanoplot ##
+## Volvanoplot ##
 # Create volcano plot using EnhancedVolcano
 p_corrected <- EnhancedVolcano(results_corrected,
     lab = rownames(results_corrected),
@@ -154,7 +149,7 @@ p_corrected <- EnhancedVolcano(results_corrected,
     xlab = bquote(~Log[2]~ 'fold change'),
     ylab = bquote(~Log[10]~ 'FDR'),
     xlim = c(-2, 2),
-    ylim = c(0, 4),
+    ylim = c(0, 2), # Set minimum and maximum for y-axis
     title = 'Differentially expressed genes',
     pCutoff = 0.05,
     FCcutoff = log2(1.5),
@@ -173,7 +168,7 @@ p_raw <- EnhancedVolcano(results_raw,
     xlab = bquote(~Log[2]~ 'fold change'),
     ylab = bquote(~Log[10]~ 'FDR'),
     xlim = c(-2, 2),
-    ylim = c(0, 6),
+    ylim = c(0, 2), # Set minimum and maximum for y-axis
     title = 'Differentially expressed genes',
     pCutoff = 0.05,
     FCcutoff = log2(1.5),
@@ -186,60 +181,61 @@ ggsave('volcano_raw.png', plot = p_raw, width = 10, height = 10, dpi = 300)
 
 ## Box plot ##
 # Transform matrix to data frame and rename columns
-adjusted_logcounts_df <- as.data.frame(reshape2::melt(adjusted_logcounts))
-logcounts_df <- as.data.frame(reshape2::melt(logcounts))
-colnames(adjusted_logcounts_df) <- c("Gene", "Sample", "normalized_count")
-colnames(logcounts_df) <- c("Gene", "Sample", "normalized_count")
+v_corrected_df <- as.data.frame(melt(v_corrected))
+v_raw_df <- as.data.frame(melt(v_raw))
+colnames(v_corrected_df) <- c("Gene", "Sample", "normalized_count")
+colnames(v_raw_df) <- c("Gene", "Sample", "normalized_count")
 
 # Create box plot
-after_plot <- ggpubr::ggboxplot(adjusted_logcounts_df, x = "Sample", y = "normalized_count")
-before_plot <- ggpubr::ggboxplot(logcounts_df, x = "Sample", y = "normalized_count")
+after_plot <- ggboxplot(v_corrected_df, x = "Sample", y = "normalized_count")
+before_plot <- ggboxplot(v_raw_df, x = "Sample", y = "normalized_count")
 
 # Save plot to a pdf file
-ggplot2::ggsave("corrected_boxplot.pdf", after_plot, width = 16, height = 9)
-ggplot2::ggsave("raw_boxplot.pdf", before_plot, width = 16, height = 9)
+ggsave("corrected_boxplot.pdf", after_plot, width = 16, height = 9)
+ggsave("raw_boxplot.pdf", before_plot, width = 16, height = 9)
+
 
 ## PCA analysis ##
 # Perform PCA on the data before batch correction
-pca_before_combat <- prcomp(t(logcounts))
-pca_before_combat_df <- as.data.frame(pca_before_combat$x[, 1:2])
-colnames(pca_before_combat_df) <- c("PC1", "PC2")
-pca_before_combat_df$group <- coldata$group
-pca_before_combat_df$batch <- coldata$batch
+pca_before_voom <- prcomp(t(v_raw))
+pca_before_voom_df <- as.data.frame(pca_before_voom$x[, 1:2])
+colnames(pca_before_voom_df) <- c("PC1", "PC2")
+pca_before_voom_df$group <- coldata$group
+pca_before_voom_df$batch <- coldata$batch
 
-# Plot PCA before batch correction (ComBat)
-plot_before_combat <- ggplot(pca_before_combat_df, aes(x = PC1, y = PC2, color = group, shape = batch)) +
+# Plot PCA before batch correction (Voom)
+plot_before_voom <- ggplot(pca_before_voom_df, aes(x = PC1, y = PC2, color = group, shape = batch)) +
   geom_point(size = 3) +
   theme_bw() +
-  labs(title = "PCA before batch correction (ComBat)",
+  labs(title = "PCA before batch correction (Voom)",
        x = "PC1",
        y = "PC2") +
   theme(legend.position = "bottom")
 
 # Perform PCA on the data after batch correction
-pca_after_combat <- prcomp(t(adjusted_logcounts))
-pca_after_combat_df <- as.data.frame(pca_after_combat$x[, 1:2])
-colnames(pca_after_combat_df) <- c("PC1", "PC2")
-pca_after_combat_df$group <- coldata$group
-pca_after_combat_df$batch <- coldata$batch
+pca_after_voom <- prcomp(t(v_corrected))
+pca_after_voom_df <- as.data.frame(pca_after_voom$x[, 1:2])
+colnames(pca_after_voom_df) <- c("PC1", "PC2")
+pca_after_voom_df$group <- coldata$group
+pca_after_voom_df$batch <- coldata$batch
 
-# Plot PCA after batch correction (ComBat)
-plot_after_combat <- ggplot(pca_after_combat_df, aes(x = PC1, y = PC2, color = group, shape = batch)) +
+# Plot PCA after batch correction (Voom)
+plot_after_voom <- ggplot(pca_after_voom_df, aes(x = PC1, y = PC2, color = group, shape = batch)) +
   geom_point(size = 3) +
   theme_bw() +
-  labs(title = "PCA after batch correction (ComBat)",
+  labs(title = "PCA after batch correction (Voom)",
        x = "PC1",
        y = "PC2") +
   theme(legend.position = "bottom")
 
-write.csv(pca_before_combat_df, file = "pca_before_combat.csv")
-write.csv(pca_after_combat_df, file = "pca_after_combat.csv")
+write.csv(pca_before_voom_df, file = "pca_before_voom.csv")
+write.csv(pca_after_voom_df, file = "pca_after_voom.csv")
 
-ggsave("pca_before_combat.png", plot_before_combat, width = 8, height = 6, units = "in", dpi = 300)
-ggsave("pca_after_combat.png", plot_after_combat, width = 8, height = 6, units = "in", dpi = 300)
+ggsave("pca_before_voom.png", plot_before_voom, width = 8, height = 6, units = "in", dpi = 300)
+ggsave("pca_after_voom.png", plot_after_voom, width = 8, height = 6, units = "in", dpi = 300)
 
 # Create a grid with both PCA plots
-merged_plots <- grid.arrange(ggplotGrob(plot_before_combat), ggplotGrob(plot_after_combat), ncol = 2)
+merged_plots <- grid.arrange(ggplotGrob(plot_before_voom), ggplotGrob(plot_after_voom), ncol = 2)
 
 # Save the merged PCA plots to a file
 ggsave("merged_PCA_plots.png", plot = merged_plots, width = 16, height = 6)
