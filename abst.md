@@ -4,7 +4,7 @@
 - **This code is Version 1. Please modify as needed:**
   - I might make it more automation-friendly if I feel like it. Too hard? Good luck (`･ω･´)
 - **When removing batch effects, decide which group to use as the reference:**
-  - # Set "C" group as the reference level ("H"/"C")  coldata$group <- relevel(coldata$group, ref = "C")
+  - Set "C" group as the reference level ("H"/"C")  coldata$group <- relevel(coldata$group, ref = "C")
 - **Please change the threshold values used for DEG identification:**
   - Defaults are, fdr_threshold <- 0.05  logFC_threshold <- log2(1.5).
 - **Change the name in coef="" as per your results:**
