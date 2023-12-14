@@ -5,12 +5,12 @@
 　- 気が向けば自動化しやすいコードにします。無理だ？頑張ってください(´･ω･`)
   - TMM法とLog変換による正規化の二種類のファイルを用意しています。お好きな方を使ってください。
 - **バッチエフェクトを除去する際には、どのグループをリファレンスにするか決める必要があります:**
-　- # Set "C" group as the reference level ("H"/"C")　coldata$group <- relevel(coldata$group, ref = "C")
+  - # Set "C" group as the reference level ("H"/"C")　coldata$group <- relevel(coldata$group, ref = "C")
 - **DEGの同定に使う閾値を変更してください:**
-　- デフォルトは、fdr_threshold <- 0.05　logFC_threshold <- log2(1.5)　です。
+  - デフォルトは、fdr_threshold <- 0.05　logFC_threshold <- log2(1.5)　です。
 - **coef=""の名前は結果に合わせて変更してください:**
-　- デフォルトは、results_raw <- topTable(fit_raw, coef="groupH", number=Inf, sort.by="p")です。
-- **このページはChatGPT-4に要約させたものを編集して作っています:**
+  - デフォルトは、results_raw <- topTable(fit_raw, coef="groupH", number=Inf, sort.by="p")です。
+- **このページはChatGPT-4に要約させたものを編集して作っています**
 
 ### ファイル
 - **main-TMM.r:**
