@@ -140,7 +140,7 @@ write.csv(top100_gene_data_raw, file="top100_gene_data_raw.csv")
 # DPI 300
 # Plot Width 600 Height 600
 
-## Volvanoplot ##
+## Volcanoplot ##
 # Create volcano plot using EnhancedVolcano
 p_corrected <- EnhancedVolcano(results_corrected,
     lab = rownames(results_corrected),
