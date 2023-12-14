@@ -12,6 +12,14 @@
 　- デフォルトは、results_raw <- topTable(fit_raw, coef="groupH", number=Inf, sort.by="p")です。
 - **このページはChatGPT-4に要約させたものを編集して作っています:**
 
+### ファイル
+- **main-TMM.r:**
+  - メインファイル　TMM method
+- **main-log.r:**
+  - メインファイル Log method
+- **coldata.csv & countdata.csv:**
+  - サンプルファイル
+
 ### インストールとライブラリの読み込み
 - **CRANからのパッケージインストール:**
   - `ggplot2`, `gridExtra`, `FactoMineR`, `reshape2`, `shiny`, `ggpubr` をインストール
