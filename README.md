@@ -1,6 +1,7 @@
 ## Detailed Summary of the Bioinformatics Data Analysis Script
 
 ### Notes
+[日本語版](https://github.com/K-Mekata-bio/RNA-seq-Meta-analysis-remove-batch-iro/blob/main/jpabst.md)
 - **This code is Version 1. Please modify as needed:**
   - I might make it more automation-friendly if I feel like it. Too hard? Good luck (`･ω･´)
 - **When removing batch effects, decide which group to use as the reference:**
