@@ -1,5 +1,5 @@
 ## Detailed Summary of the Bioinformatics Data Analysis Script
-- **This code is used for meta-analysis. To mitigate batch effects that occur when integrating count data, we use either Combat or Limma-voom's removeBatchEffect. Identification of differentially expressed genes is done using the limma package. EnhancedVolcano is recommended for easily creating volcano plots. This code is version 1 and may undergo various changes in the future.
+- **This code is used for meta-analysis. To mitigate batch effects that occur when integrating count data, we use either Combat or Limma-voom's removeBatchEffect. Identification of differentially expressed genes is done using the limma package. EnhancedVolcano is recommended for easily creating volcano plots. This code is version 1 and may undergo various changes in the future.:**
 
 ### Notes
 [日本語版](https://github.com/K-Mekata-bio/RNA-seq-Meta-analysis-remove-batch-iro/blob/main/jpabst.md)
