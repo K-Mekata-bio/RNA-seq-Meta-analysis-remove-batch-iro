@@ -4,6 +4,7 @@
 [日本語版](https://github.com/K-Mekata-bio/RNA-seq-Meta-analysis-remove-batch-iro/blob/main/jpabst.md)
 - **This code is Version 1. Please modify as needed:**
   - I might make it more automation-friendly if I feel like it. Too hard? Good luck (`･ω･´)
+  - I have prepared two types of files, one normalized using the TMM method and the other using log transformation. Please feel free to use whichever you prefer.
 - **When removing batch effects, decide which group to use as the reference:**
   - Set "C" group as the reference level ("H"/"C")  coldata$group <- relevel(coldata$group, ref = "C")
 - **Please change the threshold values used for DEG identification:**
