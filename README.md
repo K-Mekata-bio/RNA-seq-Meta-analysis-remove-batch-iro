@@ -36,12 +36,12 @@
 - **Data Preprocessing:**
   - Convert gene expression data to a matrix
   - Create and filter DGE list objects
-  - Normalize with Log transformation and save to CSV
+  - Normalize with Log transformation or TMM method, and save to CSV
 
 ### Removing Batch Effects
-- **Using `ComBat` function for batch effect removal:**
-  - Remove batch effects from log-transformed data
-  - Save log-counts to CSV
+- **Using `ComBat` or `limma-removebatcheffect` function for batch effect removal:**
+  - Remove batch effects from log-transformed data or TMM method
+  - Save counts data of correcting batch effects to CSV
 
 ### Differential Expression Gene (DEG) Analysis
 - **DEG Analysis before and after batch effect removal:**
